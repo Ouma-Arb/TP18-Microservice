@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Comptes - gRPC & REST API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+
+        .info-box h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box li {
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .info-box li:last-child {
+            border-bottom: none;
+        }
+
+        .info-box code {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .response {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .response pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-courant {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-epargne {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏦 Gestion des Comptes Bancaires</h1>
+            <p>Application gRPC & REST API avec Spring Boot</p>
+        </header>
+
+        <div class="content">
+            <div class="info-box">
+                <h2>📡 Informations sur les Services</h2>
+                <ul>
+                    <li><strong>REST API:</strong> <code>http://localhost:8080/api/comptes</code></li>
+                    <li><strong>gRPC Server:</strong> <code>localhost:9090</code> (nécessite un client gRPC)</li>
+                    <li><strong>H2 Console:</strong> <code>http://localhost:8080/h2-console</code></li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>➕ Ajouter un Compte</h2>
+                <form id="addCompteForm">
+                    <div class="form-group">
+                        <label for="solde">Solde:</label>
+                        <input type="number" id="solde" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="type">Type de Compte:</label>
+                        <select id="type" required>
+                            <option value="COURANT">Courant</option>
+                            <option value="EPARGNE">Épargne</option>
+                        </select>
+                    </div>
+                    <button type="submit">Ajouter</button>
+                </form>
+                <div id="addResponse" class="response" style="display:none;"></div>
+            </div>
+
+            <div class="section">
+                <h2>📋 Liste des Comptes</h2>
+                <button onclick="loadComptes()">Actualiser la liste</button>
+                <button onclick="getStats()">Afficher les Statistiques</button>
+                <div id="comptesTable"></div>
+                <div id="statsResponse" class="response" style="display:none;"></div>
+            </div>
+
+            <div class="section">
+                <h2>🔍 Rechercher un Compte par ID</h2>
+                <div class="form-group">
+                    <label for="compteId">ID du Compte:</label>
+                    <input type="text" id="compteId" placeholder="Entrez l'ID du compte">
+                </div>
+                <button onclick="getCompteById()">Rechercher</button>
+                <div id="searchResponse" class="response" style="display:none;"></div>
+            </div>
+
+            <div class="section">
+                <h2>🚀 Test du Serveur gRPC</h2>
+                <div class="info-box">
+                    <p><strong>Note importante:</strong> Le serveur gRPC (port 9090) n'est pas accessible directement via un navigateur web car il utilise le protocole HTTP/2 binaire. Utilisez ces boutons pour tester le serveur gRPC via des appels REST qui communiquent avec le serveur gRPC.</p>
+                </div>
+                <button onclick="testGrpcAllComptes()">📋 gRPC: Tous les Comptes</button>
+                <button onclick="testGrpcStats()">📊 gRPC: Statistiques</button>
+                <button onclick="testGrpcSaveCompte()">➕ gRPC: Ajouter un Compte Test</button>
+                <div id="grpcResponse" class="response" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/comptes';
+
+        // Load all comptes on page load
+        window.onload = function() {
+            loadComptes();
+        };
+
+        // Add compte form submission
+        document.getElementById('addCompteForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const compte = {
+                solde: parseFloat(document.getElementById('solde').value),
+                dateCreation: new Date().toISOString(),
+                type: document.getElementById('type').value
+            };
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(compte)
+                });
+
+                const data = await response.json();
+                const responseDiv = document.getElementById('addResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+
+                // Reset form and reload comptes
+                document.getElementById('addCompteForm').reset();
+                loadComptes();
+            } catch (error) {
+                console.error('Error:', error);
+                const responseDiv = document.getElementById('addResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.innerHTML = '<pre style="color: red;">Erreur: ' + error.message + '</pre>';
+            }
+        });
+
+        // Load all comptes
+        async function loadComptes() {
+            try {
+                const response = await fetch(API_BASE);
+                const comptes = await response.json();
+
+                if (comptes.length === 0) {
+                    document.getElementById('comptesTable').innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Aucun compte trouvé. Ajoutez-en un!</p>';
+                    return;
+                }
+
+                let tableHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Solde</th>
+                                <th>Date de Création</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                comptes.forEach(compte => {
+                    const badgeClass = compte.type === 'COURANT' ? 'badge-courant' : 'badge-epargne';
+                    tableHTML += `
+                        <tr>
+                            <td><code>${compte.id}</code></td>
+                            <td>${compte.solde.toFixed(2)} €</td>
+                            <td>${new Date(compte.dateCreation).toLocaleString('fr-FR')}</td>
+                            <td><span class="badge ${badgeClass}">${compte.type}</span></td>
+                            <td><button onclick="deleteCompte('${compte.id}')">Supprimer</button></td>
+                        </tr>
+                    `;
+                });
+
+                tableHTML += `
+                        </tbody>
+                    </table>
+                `;
+
+                document.getElementById('comptesTable').innerHTML = tableHTML;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('comptesTable').innerHTML = '<p style="color: red;">Erreur lors du chargement des comptes</p>';
+            }
+        }
+
+        // Get compte by ID
+        async function getCompteById() {
+            const id = document.getElementById('compteId').value;
+
+            if (!id) {
+                alert('Veuillez entrer un ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/${id}`);
+
+                if (response.status === 404 || response.status === 500) {
+                    document.getElementById('searchResponse').style.display = 'block';
+                    document.getElementById('searchResponse').innerHTML = '<pre style="color: red;">Compte non trouvé</pre>';
+                    return;
+                }
+
+                const data = await response.json();
+                document.getElementById('searchResponse').style.display = 'block';
+                document.getElementById('searchResponse').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('searchResponse').style.display = 'block';
+                document.getElementById('searchResponse').innerHTML = '<pre style="color: red;">Erreur: ' + error.message + '</pre>';
+            }
+        }
+
+        // Get statistics
+        async function getStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const stats = await response.json();
+
+                const statsHTML = `
+                    <h3>📊 Statistiques des Comptes</h3>
+                    <ul>
+                        <li><strong>Nombre total de comptes:</strong> ${stats.count}</li>
+                        <li><strong>Somme totale des soldes:</strong> ${stats.sum.toFixed(2)} €</li>
+                        <li><strong>Solde moyen:</strong> ${stats.average.toFixed(2)} €</li>
+                    </ul>
+                `;
+
+                document.getElementById('statsResponse').style.display = 'block';
+                document.getElementById('statsResponse').innerHTML = statsHTML;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('statsResponse').style.display = 'block';
+                document.getElementById('statsResponse').innerHTML = '<pre style="color: red;">Erreur: ' + error.message + '</pre>';
+            }
+        }
+
+        // Delete compte
+        async function deleteCompte(id) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce compte?')) {
+                return;
+            }
+
+            try {
+                await fetch(`${API_BASE}/${id}`, {
+                    method: 'DELETE'
+                });
+                loadComptes();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur lors de la suppression du compte');
+            }
+        }
+
+        // gRPC Test Functions
+        async function testGrpcAllComptes() {
+            try {
+                const response = await fetch('/api/grpc-test/all-comptes');
+                const data = await response.json();
+
+                const grpcDiv = document.getElementById('grpcResponse');
+                grpcDiv.style.display = 'block';
+
+                if (data.success) {
+                    grpcDiv.innerHTML = '<h3>✅ Réponse gRPC - Tous les Comptes</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                } else {
+                    grpcDiv.innerHTML = '<h3>❌ Erreur gRPC</h3><pre style="color: red;">' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                document.getElementById('grpcResponse').style.display = 'block';
+                document.getElementById('grpcResponse').innerHTML = '<pre style="color: red;">Erreur: ' + error.message + '</pre>';
+            }
+        }
+
+        async function testGrpcStats() {
+            try {
+                const response = await fetch('/api/grpc-test/stats');
+                const data = await response.json();
+
+                const grpcDiv = document.getElementById('grpcResponse');
+                grpcDiv.style.display = 'block';
+
+                if (data.success) {
+                    grpcDiv.innerHTML = '<h3>✅ Réponse gRPC - Statistiques</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                } else {
+                    grpcDiv.innerHTML = '<h3>❌ Erreur gRPC</h3><pre style="color: red;">' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                document.getElementById('grpcResponse').style.display = 'block';
+                document.getElementById('grpcResponse').innerHTML = '<pre style="color: red;">Erreur: ' + error.message + '</pre>';
+            }
+        }
+
+        async function testGrpcSaveCompte() {
+            const testCompte = {
+                solde: Math.random() * 10000,
+                dateCreation: new Date().toISOString(),
+                type: Math.random() > 0.5 ? 'COURANT' : 'EPARGNE'
+            };
+
+            try {
+                const response = await fetch('/api/grpc-test/save-compte', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testCompte)
+                });
+                const data = await response.json();
+
+                const grpcDiv = document.getElementById('grpcResponse');
+                grpcDiv.style.display = 'block';
+
+                if (data.success) {
+                    grpcDiv.innerHTML = '<h3>✅ Réponse gRPC - Compte Créé</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    // Reload the comptes list
+                    loadComptes();
+                } else {
+                    grpcDiv.innerHTML = '<h3>❌ Erreur gRPC</h3><pre style="color: red;">' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                document.getElementById('grpcResponse').style.display = 'block';
+                document.getElementById('grpcResponse').innerHTML = '<pre style="color: red;">Erreur: ' + error.message + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>
+
